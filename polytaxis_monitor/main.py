@@ -320,7 +320,10 @@ def main():
 
     conn.commit()
 
-    tmpdir = '/dev/shm/polytaxis-monitor-{}/'.format(os.getpid())
+    if os.path.exists('/dev/shm'):
+        tmpdir = '/dev/shm/polytaxis-monitor-{}/'.format(os.getpid())
+    else:
+        tmpdir = '/tmp/polytaxis-monitor-{}/'.format(os.getpid())
     os.makedirs(tmpdir, exist_ok=True)
 
     observer = watchdog.observers.Observer()
