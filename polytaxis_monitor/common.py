@@ -75,10 +75,12 @@ def open_db():
         init_db(cursor)
     return conn, cursor
 
+
 def _shifttext(source, match):
     if not source.startswith(match):
         return None
     return source[len(match):]
+
 
 def parse_query(args):
     includes = set()
@@ -145,6 +147,7 @@ def parse_query(args):
             continue
         includes.add(item)
     return includes, excludes, filters, sort, columns
+
 
 class QueryDB(object):
     def __init__(self):
@@ -269,9 +272,11 @@ class QueryDB(object):
             if len(batch) < batch_size:
                 break
 
+
 def _get(row, column):
     row_val = row['tags'].get(column)
     return next(iter(row_val)) if row_val is not None else ''
+
 
 def filter(filters, rows):
     filters = [
@@ -286,6 +291,7 @@ def filter(filters, rows):
         if filtered:
             continue
         yield row
+
 
 def sort(sort_info, rows):
     salt = '{:03d}'.format(random.randint(0, 999)).encode('utf-8')

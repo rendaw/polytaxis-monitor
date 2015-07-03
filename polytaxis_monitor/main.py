@@ -28,6 +28,7 @@ sleep_time = 5
 
 log = print
 
+
 def get_fid_and_raw_tags(parent, segment):
     got = cursor.execute(
         'SELECT id, tags FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
@@ -40,6 +41,7 @@ def get_fid_and_raw_tags(parent, segment):
         return None, None
     return got[0], None if got[1] is None else got[1].encode('utf-8')
 
+
 def get_fid(parent, segment):
     got = cursor.execute(
         'SELECT id FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
@@ -51,6 +53,7 @@ def get_fid(parent, segment):
     if got is None:
         return None
     return got[0]
+
 
 def create_tree(splits, tags=None):
     fid = None
@@ -74,11 +77,13 @@ def create_tree(splits, tags=None):
         fid = next_fid
     return fid
 
+
 def create_file(filename, tags):
     if super_verbose:
         log('DEBUG: Created: [{}]'.format(filename))
     splits = common.split_abs_path(filename)
     return create_tree(splits, tags)
+
 
 def update_file(fid, tags):
     cursor.execute(
@@ -88,6 +93,7 @@ def update_file(fid, tags):
             'tags': polytaxis.encode_tags(tags).decode('utf-8'),
         },
     )
+
 
 def clean_tree(fid):
     if cursor.execute(
@@ -116,6 +122,7 @@ def clean_tree(fid):
             break
         fid = parent
 
+
 def delete_file(fid):
     parent = cursor.execute(
         'SELECT parent FROM files WHERE id is :id',
@@ -128,6 +135,7 @@ def delete_file(fid):
     cursor.execute('DELETE FROM files WHERE id is :id', {'id': fid})
     clean_tree(parent)
 
+
 def add_tags(fid, tags):
     for key, values in tags.items():
         for value in values:
@@ -138,25 +146,33 @@ def add_tags(fid, tags):
                 }
             )
 
+
 def remove_tags(fid):
     cursor.execute('DELETE FROM tags WHERE file = :fid', {'fid': fid})
 
-def process(filename):
+
+def locate(filename):
     filename = os.path.abspath(filename)
-    if verbose:
-        log('\tScanning file [{}]'.format(filename))
-    is_file = os.path.isfile(filename)
-    tags = polytaxis.get_tags(filename) if is_file else None
-    if not tags and tags is not None:
-        tags = {'untagged': set([None])}
     fid = None
     splits = common.split_abs_path(filename)
     last_split = splits.pop()
     for split in splits:
         fid = get_fid(fid, split)
         if fid is None:
-            break
-    fid, old_raw_tags = get_fid_and_raw_tags(fid, last_split)
+            return None, None
+    return get_fid_and_raw_tags(fid, last_split)
+
+
+def process(filename):
+    filename = os.path.abspath(filename)
+    if verbose:
+        log('\tScanning file [{}]'.format(filename))
+    
+    fid, old_raw_tags = locate(filename)
+
+    is_file = os.path.isfile(filename)
+    tags = polytaxis.get_tags(filename) if is_file else None
+
     if tags is None and fid is None:
         if super_verbose:
             log('DEBUG: Not a file; skipping [{}]'.format(filename))
@@ -177,6 +193,7 @@ def process(filename):
             log('DEBUG: Deleted: [{}]'.format(filename))
         remove_tags(fid)
         delete_file(fid)
+
 
 def move_file(source, dest):
     source = os.path.abspath(source)
